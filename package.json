@@ -1,0 +1,94 @@
+{
+  "name": "workspace-terminal-history",
+  "displayName": "Workspace Terminal History",
+  "description": "Saves and restores terminal command history per workspace folder. Arrow keys recall commands from your last session in each project.",
+  "version": "1.0.0",
+  "publisher": "TanishqSangwan",
+  "author": {
+    "name": "Workspace Terminal History Contributors"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sadashii/workspace-terminal-history"
+  },
+  "bugs": {
+    "url": "https://github.com/sadashii/workspace-terminal-history/issues"
+  },
+  "homepage": "https://github.com/sadashii/workspace-terminal-history#readme",
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "categories": ["Other"],
+  "keywords": ["terminal", "history", "workspace", "shell", "commands", "bash", "zsh", "powershell"],
+  "galleryBanner": {
+    "color": "#1e2332",
+    "theme": "dark"
+  },
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "icon": "icon.png",
+  "contributes": {
+    "commands": [
+      {
+        "command": "workspaceHistory.showHistory",
+        "title": "Workspace History: Show Command History"
+      },
+      {
+        "command": "workspaceHistory.clearHistory",
+        "title": "Workspace History: Clear History for This Workspace"
+      },
+      {
+        "command": "workspaceHistory.openHistoryFile",
+        "title": "Workspace History: Open History File"
+      }
+    ],
+    "configuration": {
+      "title": "Workspace Terminal History",
+      "properties": {
+        "workspaceHistory.maxCommands": {
+          "type": "number",
+          "default": 500,
+          "description": "Maximum number of commands to store per workspace"
+        },
+        "workspaceHistory.excludePatterns": {
+          "type": "array",
+          "default": ["ls", "ll", "la", "pwd", "clear", "cls", "exit", "history"],
+          "description": "Commands to exclude from history"
+        },
+        "workspaceHistory.historyFileName": {
+          "type": "string",
+          "default": ".terminal_history",
+          "description": "Name of the history file saved in your workspace root"
+        },
+        "workspaceHistory.saveToVscodeFolder": {
+          "type": "boolean",
+          "default": false,
+          "description": "Save history inside .vscode/ folder instead of workspace root"
+        },
+        "workspaceHistory.deduplicateConsecutive": {
+          "type": "boolean",
+          "default": true,
+          "description": "Skip saving a command if it is identical to the last saved command"
+        },
+        "workspaceHistory.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show command count in the status bar"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.93.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.24.0"
+  }
+}
