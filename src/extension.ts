@@ -192,10 +192,6 @@ function detectShell(terminal: vscode.Terminal): ShellType {
   return "bash"; // macOS / Linux default
 }
 
-/**
- * Build the shell commands needed to inject history entries so arrow-key recall
- * works natively in the shell.
- */
 function buildHistoryInjectionScript(
   commands: string[],
   shell: ShellType
@@ -207,46 +203,48 @@ function buildHistoryInjectionScript(
   // Only send the most recent N entries to avoid flooding the terminal on open
   const INJECT_LIMIT = 100;
   const recent = commands.slice(-INJECT_LIMIT);
+  const randomId = Math.random().toString(36).substring(7);
 
   switch (shell) {
     case "bash":
     case "zsh": {
-      // `history -s` appends to the in-memory history list
+      const tmpPath = path.join(os.tmpdir(), `wshist_${randomId}.sh`);
       const lines = recent
         .map((cmd) => `history -s ${shellQuote(cmd, "bash")}`)
         .join("\n");
-      return lines;
+      // Add 'history -r' equivalent? history -s adds to memory immediately.
+      fs.writeFileSync(tmpPath, lines, "utf8");
+      // Clear the line visually if possible? Or just source it compactly
+      return `source "${tmpPath.replace(/\\/g, "/")}" && rm "${tmpPath.replace(/\\/g, "/")}"`;
     }
 
     case "fish": {
-      // fish history is file-based; we write entries via `builtin history`
-      const lines = recent
-        .map((cmd) => `builtin history merge; echo ${shellQuote(cmd, "fish")} | builtin history merge`)
-        .join("\n");
-      // Simpler: just use `history merge` after appending via fish_history
-      // Actually the cleanest fish approach is to send each as a history command
+      const tmpPath = path.join(os.tmpdir(), `wshist_${randomId}.fish`);
       const fishLines = recent
-        .map((cmd) => `builtin history append ${shellQuote(cmd, "fish")}`)
-        .join("; ");
-      return fishLines;
+        .map((cmd) => `history merge; echo ${shellQuote(cmd, "fish")} | builtin history merge`)
+        .join("\n");
+      fs.writeFileSync(tmpPath, fishLines, "utf8");
+      return `source "${tmpPath.replace(/\\/g, "/")}"; rm "${tmpPath.replace(/\\/g, "/")}"`;
     }
 
     case "powershell": {
-      // Add-History accepts HistoryInfo objects; easier via [Microsoft.PowerShell.Commands.HistoryInfo]
-      // Simplest cross-version approach: build an array and add all at once
+      const tmpPath = path.join(os.tmpdir(), `wshist_${randomId}.ps1`);
+      // Use PSConsoleReadLine::AddToHistory so up/down arrow works smoothly in PS
       const entries = recent
         .map(
           (cmd) =>
-            `[Microsoft.PowerShell.Commands.HistoryInfo]@{CommandLine=${psQuote(cmd)};ExecutionStatus='Completed';StartExecutionTime=[DateTime]::Now;EndExecutionTime=[DateTime]::Now}`
+            `try { [Microsoft.PowerShell.PSConsoleReadLine]::AddToHistory(${psQuote(cmd)}) } catch {}`
         )
-        .join(",`\n  ");
-      return `@(\n  ${entries}\n) | Add-History`;
+        .join("\n");
+      fs.writeFileSync(tmpPath, entries, "utf8");
+      // Single line execute and delete
+      return `& "${tmpPath}"; Remove-Item "${tmpPath}" -ErrorAction SilentlyContinue`;
     }
 
     case "cmd":
     case "unknown":
     default:
-      return null; // cmd.exe has no scriptable history injection
+      return null;
   }
 }
 
@@ -316,6 +314,11 @@ export function activate(context: vscode.ExtensionContext) {
     terminal: vscode.Terminal,
     workspaceRoot: string
   ) {
+    const cfg = vscode.workspace.getConfiguration("workspaceHistory");
+    if (!cfg.get<boolean>("injectOnTerminalOpen", false)) {
+      return;
+    }
+
     const commands = manager.getCommands(workspaceRoot);
     if (commands.length === 0) {
       return;
