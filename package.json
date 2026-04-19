@@ -2,7 +2,7 @@
   "name": "workspace-terminal-history",
   "displayName": "Workspace Terminal History",
   "description": "Saves and restores terminal command history per workspace folder. Arrow keys recall commands from your last session in each project.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "TanishqSangwan",
   "author": {
     "name": "Workspace Terminal History Contributors"

@@ -358,19 +358,19 @@ export function activate(context: vscode.ExtensionContext) {
 
   // ── Capture executed commands via Shell Integration API ──
   // This API became stable in VS Code 1.93
-  if ("onDidExecuteTerminalCommand" in vscode.window) {
+  if ("onDidEndTerminalShellExecution" in vscode.window) {
     context.subscriptions.push(
-      (vscode.window as any).onDidExecuteTerminalCommand(
-        (event: { terminal: vscode.Terminal; commandLine: string; cwd?: vscode.Uri }) => {
+      vscode.window.onDidEndTerminalShellExecution(
+        (event) => {
           const root = getActiveWorkspaceRoot();
           if (!root) {
             return;
           }
-          const command = event.commandLine?.trim();
+          const command = event.execution.commandLine?.value?.trim();
           if (!command) {
             return;
           }
-          const cwdStr = event.cwd?.fsPath;
+          const cwdStr = event.execution.cwd?.fsPath;
           const added = manager.addCommand(root, command, cwdStr);
           if (added) {
             updateStatusBar(root);
